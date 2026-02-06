@@ -1,0 +1,82 @@
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: 100;
+    font-style: normal;
+    src: url('Fonts/Montserrat-Hairline.ttf') format('opentype');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: 200;
+    font-style: normal;
+    src: url('Fonts/Montserrat-UltraLight.ttf') format('opentype');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: 300;
+    font-style: normal;
+    src: url('Fonts/Montserrat-Light.ttf') format('opentype');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: 400;
+    font-style: normal;
+    src: url('Fonts/Montserrat-Regular.ttf') format('opentype');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: 500;
+    font-style: normal;
+    src: url('Fonts/Montserrat-SemiBold.ttf') format('opentype');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: 600;
+    font-style: normal;
+    src: url('Fonts/Montserrat-Bold.ttf') format('opentype');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: 700;
+    font-style: normal;
+    src: url('Fonts/Montserrat-ExtraBold.ttf') format('opentype');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: 800;
+    font-style: normal;
+    src: url('Fonts/Montserrat-Black.ttf') format('opentype');
+}
+@font-face {
+    font-family: 'BebasNeue';
+    font-weight: 100;
+    font-style: normal;
+    src: url('Fonts/BebasNeue-Thin.ttf') format('opentype');
+}
+
+@font-face {
+    font-family: 'BebasNeue';
+    font-weight: 200;
+    font-style: normal;
+    src: url('Fonts/BebasNeue-Light.ttf') format('opentype');
+}
+
+@font-face {
+    font-family: 'BebasNeue';
+    font-weight: 300;
+    font-style: normal;
+    src: url('Fonts/BebasNeue-Book.ttf') format('opentype');
+}
+
+@font-face {
+    font-family: 'BebasNeue';
+    font-weight: 400;
+    font-style: normal;
+    src: url('Fonts/BebasNeue-Regular.ttf') format('opentype');
+}
+
+@font-face {
+    font-family: 'BebasNeue';
+    font-weight: 700;
+    font-style: normal;
+    src: url('Fonts/BebasNeue-Bold.ttf') format('opentype');
+}

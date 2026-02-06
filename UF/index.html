@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLTF Viewer with Annotations and FlyControls</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Maven+Pro:wght@400..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+    </style>
+</head>
+<body>
+    <div id="uiContainer"></div>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/OrbitControls.js",
+        "three/examples/jsm/controls/FlyControls": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/FlyControls.js",
+        "three/examples/jsm/loaders/GLTFLoader": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/GLTFLoader.js",
+        "three/examples/jsm/loaders/RGBELoader": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/RGBELoader.js",
+        "@needle-tools/three-animation-pointer": "https://cdn.jsdelivr.net/npm/@needle-tools/three-animation-pointer@1.0.1/dist/three-animation-pointer.js"
+      }
+    }
+    </script>
+    <script src="./libs/qrcode.min.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>

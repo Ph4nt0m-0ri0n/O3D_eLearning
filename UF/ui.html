@@ -1,0 +1,101 @@
+<div class="load-button-container">
+<label class="FilesText">Files</label>
+    <button class="load-button" id="loadModelBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon" id="Cube">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+        Load Model
+    </button>
+    <button class="load-button" id="loadHdriBtn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon" id="Sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        Load HDRI
+    </button>
+</div>
+<input type="file" id="fileInput" accept=".gltf,.glb" style="display:none;">
+<input type="file" id="hdriInput" accept=".hdr" style="display:none;">
+<div class="meshcontainer">
+    <label class="meshtxt">Mesh Controls</label>
+    <div class="mesh-grid">
+        <button class="meshbtn" id="toggleVisibilityButton">Hide</button>
+        <button class="meshbtn" id="showAllButton">Show All</button>
+        <button class="meshbtn" id="xrayButton">X-Ray</button>
+        <button class="meshbtn" id="dimensionsButton">Dimension</button>
+        <button class="meshbtn" id="flyModeButton">Fly</button>
+        <button class="meshbtn" id="arButton">AR</button>
+    </div>
+</div>
+<div class="material-panel">
+    <div class="material-header">Materials</div>
+    <div id="materialList" class="material-list">
+        <!-- Buttons added dynamically by JS -->
+    </div>
+</div>
+<div id="SSBlock">
+    <button id="screenshotButton" title="Screenshot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon" id="camera"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></svg></button>
+</div>
+<div id="mediaContainer">
+    <label class="playerLabel">Viewer</label>
+</div>
+<div id="videoOverlay" class="overlay">
+    <span id="closeVideo" class="close-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#FF0000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></span>
+    <div id="videoContainer"></div>
+</div>
+<a href="https://olovi3d.com" target="_blank">
+    <img id="logo" src="Logo.svg" alt="Olovi3D Logo">
+</a>
+<div id="controlsDropdown">
+    <button class="gear-btn" id="gearButton"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sliders-vertical-icon lucide-sliders-vertical"><path d="M10 8h4"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M17 16h4"/><path d="M19 12V3"/><path d="M19 21v-5"/><path d="M3 14h4"/><path d="M5 10V3"/><path d="M5 21v-7"/></svg></button>
+    <div class="dropdown-content" id="dropdownContent">
+        <label for="exposure">Bright:</label>
+        <input type="range" id="exposure" min="0" max="5" step="0.01" value="0.5">
+        <label id="gradientType">Background:</label>
+        <div id="gradientTypeContainer">
+            <span id="gradientRadial" class="gradient-option" data-value="radial">Radial</span>
+            <span id="gradientLinear" class="gradient-option" data-value="linear">Linear</span>
+            <span id="gradientSolid" class="gradient-option" data-value="solid">Solid</span>
+        </div>
+        <div id="gradientColorsContainer">
+            <div id="gradientColor1Container" class="color-container">
+                <label for="gradientColor1" id="gradientColor1Label">Color 1:</label>
+                <input type="color" id="gradientColor1" value="#ffffff">
+            </div>
+            <div id="gradientColor2Container" class="color-container">
+                <label for="gradientColor2" id="gradientColor2Label">Color 2:</label>
+                <input type="color" id="gradientColor2" value="#7A7A7A">
+            </div>
+        </div>
+    </div>
+</div>
+<div id="annotationPanel">
+    <div class="annotation-header">Key Parts</div>
+    <div id="annotationList" class="annotation-list">
+        <!-- Items added dynamically by JavaScript when model loads -->
+    </div>
+</div>
+<div id="textOverlay" class="overlay">
+      <span id="closeText" class="close-icon">✕</span>
+      <div id="textContent"></div>
+</div>
+<div id="animationControls">
+    <label class="animHeader">Animation Controls</label>
+      <span id="animationSelectTrigger">Select</span>
+      <section id="animationOptionsDropdown" class="options"></section>
+      <input type="range" id="animationTimeline" min="0" value="0">
+      <button id="playAnimation" title="Play"><img src="assets/play.svg" alt="" width="20px"></button>
+      <button id="pauseAnimation" title="Pause"><img src="assets/pause.svg" alt="" width="20px"></button>
+      <button id="reverseAnimation" title="Reverse"><img src="assets/reverse.svg" alt="" width="25px"></button>
+</div>
+<div class="viewsContainer">
+    <label class="viewstxt">Views</label>
+    <div class="viewsgrid">
+        <button class="viewsbtn" id="frontView">Front</button>
+        <button class="viewsbtn" id="backView">Back</button>
+        <button class="viewsbtn" id="leftView">Left</button>
+        <button class="viewsbtn" id="rightView">Right</button>
+        <button class="viewsbtn" id="topView">Top</button>
+        <button class="viewsbtn" id="bottomView">Bottom</button>
+        <button class="viewsbtn" id="resetView">Reset</button>
+    </div>
+</div>
