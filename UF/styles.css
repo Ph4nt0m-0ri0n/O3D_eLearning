@@ -34,7 +34,7 @@ input[type="file"] {
     left: 20px;
     padding: 10px 10px 10px 10px;
     border:1px solid rgba(255, 255, 255, 0.2);
-    display: grid;
+    display: none;
     gap: 5px;
     border-radius: 15px;
     z-index: 100;
@@ -80,7 +80,7 @@ input[type="file"] {
 /* Mesh controls Div Start */
 .meshcontainer {
     position: fixed;
-    bottom: 200px;
+    bottom: 30px;
     left: 20px;
     width: 217px;
     background: rgba(0, 0, 0, 0.3);
@@ -363,7 +363,7 @@ input[type="file"] {
 
 /* Controls Div Start */
 #controlsDropdown {
-    position: absolute;
+    position: fixed;
     top: 15px;
     right: 10px;
     width: 55px;
@@ -501,7 +501,7 @@ input[type="file"] {
 /* Views Div Start */
 .viewsContainer {
     position: fixed;
-    bottom: 400px;
+    bottom: 225px;
     left: 20px;
     width: 217px;
     background: rgba(0, 0, 0, 0.3);
@@ -642,7 +642,7 @@ input[type="file"] {
     border-radius: 15px;
     overflow: hidden;
     z-index: 50;
-    display: flex;/* none to hide, flex to show*/
+    display:none; /* none to hide, flex to show*/
     flex-direction: column;
 }
 
@@ -703,3 +703,99 @@ input[type="file"] {
     background: rgba(255, 255, 255, 0.2);
 }
 /* Materials Div End */
+/* Model Loading Overlay */
+.model-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.model-loading-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.loading-content {
+  text-align: center;
+  color: #ffffff;
+  max-width: 320px;
+  padding: 2rem;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.spinner {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.5rem;
+  border: 5px solid rgba(255, 255, 255, 0.2);
+  border-top: 5px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 2rem;
+  font-weight: 500;
+  font-family: Bebas Neue;
+  margin-bottom: 1.2rem;
+  background: #ffffff;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.progress-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 0.8rem 0 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #ffffff;
+  transition: width 0.25s ease-out;
+}
+
+.progress-percent {
+  font-size: 0.95rem;
+  color: #ffffff;
+  font-weight: 500;
+}
+/* Make spinner larger / faster */
+.spinner {
+  width: 80px;
+  height: 80px;
+  border-width: 6px;
+  animation-duration: 1s;
+}
+
+/* Gradient text animation */
+.loading-text {
+  background-size: 200% 200%;
+  animation: gradientFlow 6s ease infinite;
+}
+
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}

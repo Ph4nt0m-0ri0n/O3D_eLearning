@@ -27,7 +27,7 @@
     </div>
 </div>
 <div class="material-panel">
-    <div class="material-header">Materials</div>
+    <div class="material-header">MATERIALS</div>
     <div id="materialList" class="material-list">
         <!-- Buttons added dynamically by JS -->
     </div>
@@ -98,4 +98,15 @@
         <button class="viewsbtn" id="bottomView">Bottom</button>
         <button class="viewsbtn" id="resetView">Reset</button>
     </div>
+</div>
+<!-- Loading overlay – centered, aesthetic, CSS-controllable -->
+<div id="modelLoadingOverlay" class="model-loading-overlay">
+  <div class="loading-content">
+    <div class="spinner"></div>
+    <p class="loading-text">Loading</p>
+    <div class="progress-bar">
+      <div class="progress-fill" id="modelProgressFill"></div>
+    </div>
+    <span class="progress-percent" id="modelProgressPercent">0%</span>
+  </div>
 </div>
