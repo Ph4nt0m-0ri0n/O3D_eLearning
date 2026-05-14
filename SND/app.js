@@ -34,7 +34,7 @@ fetch('ui.html')
     let is360Rotating = false;
     let rotation360Angle = 0;
     let rotation360Paused = false;
-    const ASSETS_BASE = 'https://github.com/Ph4nt0m-0ri0n/O3D_eLearning/tree/main/SND';
+    const ASSETS_BASE = 'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/O3D_eLearning/tree/main/SND';
 
 function init() {
         scene = new THREE.Scene();
