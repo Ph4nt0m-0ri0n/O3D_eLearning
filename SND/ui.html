@@ -22,12 +22,12 @@
         <button class="meshbtn" id="showAllButton">Show All</button>
         <button class="meshbtn" id="xrayButton">X-Ray</button>
         <button class="meshbtn" id="dimensionsButton">Dimension</button>
-        <!--<button class="meshbtn" id="flyModeButton">Fly</button>-->
-        <!--<button class="meshbtn" id="arButton">AR</button>-->
+        <button class="meshbtn" id="flyModeButton">Fly</button>
+        <button class="meshbtn" id="arButton">AR</button>
     </div>
 </div>
 <div class="material-panel">
-    <div class="material-header">Materials</div>
+    <div class="material-header">MATERIALS</div>
     <div id="materialList" class="material-list">
         <!-- Buttons added dynamically by JS -->
     </div>
@@ -87,7 +87,6 @@
       <button id="pauseAnimation" title="Pause"><img src="assets/pause.svg" alt="" width="20px"></button>
       <button id="reverseAnimation" title="Reverse"><img src="assets/reverse.svg" alt="" width="25px"></button>
 </div>
-<!-- VIEWS SECTION COMMENTED OUT — uncomment to restore
 <div class="viewsContainer">
     <label class="viewstxt">Views</label>
     <div class="viewsgrid">
@@ -100,26 +99,14 @@
         <button class="viewsbtn" id="resetView">Reset</button>
     </div>
 </div>
--->
-
-<div id="viewpointPanel">
-    <label class="viewpointHeader">Viewpoints</label>
-    <div id="viewpointList" class="viewpoint-list">
-        <!-- Populated dynamically by JS -->
+<!-- Loading overlay – centered, aesthetic, CSS-controllable -->
+<div id="modelLoadingOverlay" class="model-loading-overlay">
+  <div class="loading-content">
+    <div class="spinner"></div>
+    <p class="loading-text">Loading</p>
+    <div class="progress-bar">
+      <div class="progress-fill" id="modelProgressFill"></div>
     </div>
-</div>
-<div id="fpsCounter">
-    <span id="fpsValue">-- FPS</span>
-    <span id="drawCallValue">-- DC</span>
-    <span id="triangleValue">-- TRI</span>
-</div>
-<!-- Model Loading Overlay -->
-<div id="modelLoadingOverlay">
-    <div id="modelLoadingBox">
-        <div id="modelLoadingLabel">Loading Model...</div>
-        <div id="modelProgressBar">
-            <div id="modelProgressFill"></div>
-        </div>
-        <div id="modelProgressPercent">0%</div>
-    </div>
+    <span class="progress-percent" id="modelProgressPercent">0%</span>
+  </div>
 </div>

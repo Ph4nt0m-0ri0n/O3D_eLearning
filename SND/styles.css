@@ -34,7 +34,7 @@ input[type="file"] {
     left: 20px;
     padding: 10px 10px 10px 10px;
     border:1px solid rgba(255, 255, 255, 0.2);
-    display: grid;
+    display: none;
     gap: 5px;
     border-radius: 15px;
     z-index: 100;
@@ -80,7 +80,7 @@ input[type="file"] {
 /* Mesh controls Div Start */
 .meshcontainer {
     position: fixed;
-    bottom: 200px;
+    bottom: 30px;
     left: 20px;
     width: 217px;
     background: rgba(0, 0, 0, 0.3);
@@ -363,7 +363,7 @@ input[type="file"] {
 
 /* Controls Div Start */
 #controlsDropdown {
-    position: absolute;
+    position: fixed;
     top: 15px;
     right: 10px;
     width: 55px;
@@ -498,10 +498,10 @@ input[type="file"] {
 }
 /* Controls Div End */
 
-/* VIEWS CSS COMMENTED OUT — uncomment to restore
+/* Views Div Start */
 .viewsContainer {
     position: fixed;
-    bottom: 400px;
+    bottom: 225px;
     left: 20px;
     width: 217px;
     background: rgba(0, 0, 0, 0.3);
@@ -522,7 +522,7 @@ input[type="file"] {
 .viewsgrid {
     display: grid;
     padding-top: 5px;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr; /* 2 columns */
     gap: 5px;
 }
 .viewsbtn {
@@ -540,73 +540,29 @@ input[type="file"] {
 .viewsbtn:hover {
     background: rgba(255, 255, 255, 0.2);
 }
-#frontView{ border:1px solid rgba(255, 255, 255, 0.2); }
-#backView{ border:1px solid rgba(255, 255, 255, 0.2); }
-#leftView{ border:1px solid rgba(255, 255, 255, 0.2); }
-#rightView{ border:1px solid rgba(255, 255, 255, 0.2); }
-#topView{ border:1px solid rgba(255, 255, 255, 0.2); }
-#bottomView{ border:1px solid rgba(255, 255, 255, 0.2); }
-#resetView{
-    grid-column: 1 / -1;
+#frontView{
     border:1px solid rgba(255, 255, 255, 0.2);
 }
-Views Div End */
-
-/* Viewpoints Panel Start */
-#viewpointPanel {
-    position: fixed;
-    bottom: 400px;
-    left: 20px;
-    width: 217px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
-    padding: 10px;
-    z-index: 50;
-    max-height: 260px;
-    display: flex;
-    flex-direction: column;
+#backView{
+    border:1px solid rgba(255, 255, 255, 0.2);
 }
-.viewpointHeader {
-    font-size: 18px;
-    font-family: Poppins;
-    padding-left: 5px;
-    padding-bottom: 5px;
-    color: #ffffff;
-    flex-shrink: 0;
+#leftView{
+    border:1px solid rgba(255, 255, 255, 0.2);
 }
-.viewpoint-list {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    overflow-y: auto;
+#rightView{
+    border:1px solid rgba(255, 255, 255, 0.2);
 }
-.viewpoint-list::-webkit-scrollbar { width: 6px; }
-.viewpoint-list::-webkit-scrollbar-track { background: transparent; }
-.viewpoint-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+#topView{
+    border:1px solid rgba(255, 255, 255, 0.2);
 }
-.viewpoint-btn {
-    padding: 8px 10px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    color: white;
-    font-size: 14px;
-    font-family: Poppins;
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.3s ease;
+#bottomView{
+    border:1px solid rgba(255, 255, 255, 0.2);
 }
-.viewpoint-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+#resetView{
+    grid-column: 1 / -1; /* Span both columns */
+    border:1px solid rgba(255, 255, 255, 0.2);
 }
-.viewpoint-btn.active {
-    background: rgba(24, 154, 180, 0.4);
-    border-color: #189AB4;
-}
-/* Viewpoints Panel End */
+/* Views Div End */
 
 /* Parts Div Start */
 #annotationPanel {
@@ -686,7 +642,7 @@ Views Div End */
     border-radius: 15px;
     overflow: hidden;
     z-index: 50;
-    display: none;/* none to hide, flex to show*/
+    display:none; /* none to hide, flex to show*/
     flex-direction: column;
 }
 
@@ -747,74 +703,99 @@ Views Div End */
     background: rgba(255, 255, 255, 0.2);
 }
 /* Materials Div End */
-/* FPS Counter Start*/
-#fpsCounter {
-    position: fixed;
-    top: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    padding: 4px 14px;
-    z-index: 100;
-    display: flex;
-    gap: 14px;
-    font-family: 'Poppins', monospace;
-    font-size: 13px;
-    pointer-events: none;
+/* Model Loading Overlay */
+.model-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
 }
-#fpsValue { color: #4ade80; min-width: 60px; }
-#drawCallValue { color: #60a5fa; min-width: 50px; }
-#triangleValue { color: #facc15; min-width: 60px; }
-/* FPS Counter End */
-/* Model Loading Overlay Start */
-#modelLoadingOverlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(6px);
-    z-index: 999;
-    align-items: center;
-    justify-content: center;
+
+.model-loading-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
 }
-#modelLoadingOverlay.visible {
-    display: flex;
+
+.loading-content {
+  text-align: center;
+  color: #ffffff;
+  max-width: 320px;
+  padding: 2rem;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
 }
-#modelLoadingBox {
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
-    padding: 32px 40px;
-    text-align: center;
-    min-width: 260px;
+
+.spinner {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.5rem;
+  border: 5px solid rgba(255, 255, 255, 0.2);
+  border-top: 5px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 1.2s linear infinite;
 }
-#modelLoadingLabel {
-    color: #ffffff;
-    font-family: 'Poppins', sans-serif;
-    font-size: 16px;
-    margin-bottom: 16px;
-    letter-spacing: 0.05em;
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
-#modelProgressBar {
-    width: 100%;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-bottom: 10px;
+
+.loading-text {
+  font-size: 2rem;
+  font-weight: 500;
+  font-family: Bebas Neue;
+  margin-bottom: 1.2rem;
+  background: #ffffff;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-#modelProgressFill {
-    height: 100%;
-    width: 0%;
-    background: #189AB4;
-    border-radius: 2px;
-    transition: width 0.15s ease;
+
+.progress-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 0.8rem 0 0.5rem;
 }
-#modelProgressPercent {
-    color: rgba(255, 255, 255, 0.6);
-    font-family: 'Poppins', sans-serif;
-    font-size: 13px;
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #ffffff;
+  transition: width 0.25s ease-out;
 }
-/* Model Loading Overlay End */
+
+.progress-percent {
+  font-size: 0.95rem;
+  color: #ffffff;
+  font-weight: 500;
+}
+/* Make spinner larger / faster */
+.spinner {
+  width: 80px;
+  height: 80px;
+  border-width: 6px;
+  animation-duration: 1s;
+}
+
+/* Gradient text animation */
+.loading-text {
+  background-size: 200% 200%;
+  animation: gradientFlow 6s ease infinite;
+}
+
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
