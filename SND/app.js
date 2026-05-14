@@ -34,7 +34,7 @@ fetch('ui.html')
     let is360Rotating = false;
     let rotation360Angle = 0;
     let rotation360Paused = false;
-    const ASSETS_BASE = 'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/O3D_eLearning/main/SND/';
+    const ASSETS_BASE = 'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/O3D_eLearning/main/SND';
 
 function init() {
         scene = new THREE.Scene();
@@ -1112,7 +1112,7 @@ function updateHaloEffects(delta) {
 
 function loadGLTFModel() {
     const loader = new GLTFLoader();
-    const modelPath ='https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/O3D_eLearning/main/SND/Model.glb';
+    const modelPath ='https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/O3D_eLearning/main/SND/Model/Model.glb';
     const hdriPath = './HDRI/photo_studio_01_4k.hdr';
 
     console.log('Loading Base Model from:', modelPath);
