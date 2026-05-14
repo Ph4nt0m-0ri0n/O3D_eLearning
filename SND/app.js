@@ -18,6 +18,7 @@ fetch('ui.html')
     let raycaster = new THREE.Raycaster();
     let mouse = new THREE.Vector2();
     let selectedObject = null;
+    Object.defineProperty(window, 'selectedObject', { get: () => selectedObject });
     let lastTapTime = 0;
     let isMultiTouch = false;
     const doubleTapThreshold = 300;
@@ -30,6 +31,10 @@ fetch('ui.html')
     let isFlyMode = false;
     let hideableParts = []; // Stores all parts with "hide_" prefix
     const pitchLimit = 54 * (Math.PI / 180);
+    let is360Rotating = false;
+    let rotation360Angle = 0;
+    let rotation360Paused = false;
+    const ASSETS_BASE = 'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/GLTFViewer/main/Examples/Schist';
 
 function init() {
         scene = new THREE.Scene();
@@ -417,17 +422,20 @@ function postInit() {
         if (currentModel) {
             currentModel.traverse(node => {
                 if (node.isMesh) {
-                    node.visible = true;
-                    if (originalMaterials.has(node)) {
-                        node.material = originalMaterials.get(node);
-                        node.material.needsUpdate = true;
+                    const isHidePart = node.name.toLowerCase().startsWith('hide_');
+                    const isDimension = node.name.startsWith('Dimension_');
+                    // Only restore visibility for meshes manually hidden by the user
+                    // Leave hide_ parts and Dimension_ meshes in their managed state
+                    if (!isHidePart && !isDimension) {
+                        node.visible = true;
+                        if (originalMaterials.has(node)) {
+                            node.material = originalMaterials.get(node);
+                            node.material.needsUpdate = true;
+                            originalMaterials.delete(node);
+                        }
                     }
                 }
             });
-            originalMaterials.clear();
-            areDimensionsVisible = false;
-            toggleDimensionsVisibility();
-            document.getElementById('dimensionsButton').textContent = 'Dimension';
         }
     });
 
@@ -485,6 +493,7 @@ function postInit() {
         document.getElementById('dimensionsButton').textContent = areDimensionsVisible ? 'Dimension' : 'Dimension';
     });
 
+    /* VIEW LISTENERS COMMENTED OUT — uncomment to restore
     addListener('frontView', 'click', () => setOrthographicView({ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }));
     addListener('backView', 'click', () => setOrthographicView({ x: -1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }));
     addListener('leftView', 'click', () => setOrthographicView({ x: 0, y: 0, z: -1 }, { x: 0, y: 1, z: 0 }));
@@ -492,6 +501,7 @@ function postInit() {
     addListener('topView', 'click', () => setOrthographicView({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 1 }));
     addListener('bottomView', 'click', () => setOrthographicView({ x: 0, y: -1, z: 0 }, { x: 0, y: 0, z: 1 }));
     addListener('resetView', 'click', resetPerspectiveView);
+    */
 
     renderer.domElement.addEventListener('click', (event) => {
         if (!isFlyMode) {
@@ -628,6 +638,7 @@ function postInit() {
             dropdown.style.display = 'none';
         }
     });
+    animate();
     const canvas = renderer.domElement;
 
 // Visual feedback on drag over
@@ -863,15 +874,153 @@ function toggleAnimationDropdown() {
     dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
 }
 
+// ─── Dimension Overlay ────────────────────────────────────────────────────────
+let dimensionLines = null;
+let dimensionLabelContainer = null;
+let dimensionLabelData = [];
+
 function toggleDimensionsVisibility() {
-    if (currentModel) {
-        currentModel.traverse(node => {
-            if (node.isMesh && node.name.startsWith('Dimension_')) {
-                node.visible = areDimensionsVisible;
-            }
-        });
+    if (areDimensionsVisible) {
+        showDimensions();
+    } else {
+        hideDimensions();
     }
 }
+
+function showDimensions() {
+    if (!currentModel) return;
+
+    hideDimensions(); // clear any previous
+
+    const box = new THREE.Box3().setFromObject(currentModel);
+    const min = box.min;
+    const max = box.max;
+    const size = box.getSize(new THREE.Vector3());
+
+    // Hardcoded display values — lines still align to actual model extremities
+    const W = '3.5 m';
+    const H = '4 m';
+    const D = '3.5 m';
+
+    const lineMat = new THREE.LineBasicMaterial({
+        color: 0x189AB4,
+        depthTest: false,
+        transparent: true,
+        opacity: 0.9
+    });
+
+    dimensionLines = new THREE.Group();
+    dimensionLines.renderOrder = 999;
+
+    const gap = Math.max(size.x, size.y, size.z) * 0.08;
+
+    function addDimLine(pA, pB, tickAxis) {
+        const geo = new THREE.BufferGeometry().setFromPoints([pA.clone(), pB.clone()]);
+        dimensionLines.add(new THREE.Line(geo, lineMat));
+        const tickLen = Math.max(size.x, size.y, size.z) * 0.025;
+        const tv = tickAxis.clone().multiplyScalar(tickLen);
+        [pA, pB].forEach(p => {
+            const tGeo = new THREE.BufferGeometry().setFromPoints([
+                p.clone().sub(tv), p.clone().add(tv)
+            ]);
+            dimensionLines.add(new THREE.Line(tGeo, lineMat));
+        });
+    }
+
+    // Width — along X, offset below and in front, spanning exact model extents
+    const wY = min.y - gap;
+    const wZ = max.z + gap;
+    addDimLine(
+        new THREE.Vector3(min.x, wY, wZ),
+        new THREE.Vector3(max.x, wY, wZ),
+        new THREE.Vector3(0, 1, 0)
+    );
+
+    // Height — along Y, offset to the right and in front, spanning exact model extents
+    const hX = max.x + gap;
+    const hZ = max.z + gap;
+    addDimLine(
+        new THREE.Vector3(hX, min.y, hZ),
+        new THREE.Vector3(hX, max.y, hZ),
+        new THREE.Vector3(1, 0, 0)
+    );
+
+    // Depth — along Z, offset to the right and below, spanning exact model extents
+    const dX = max.x + gap;
+    const dY = min.y - gap;
+    addDimLine(
+        new THREE.Vector3(dX, dY, min.z),
+        new THREE.Vector3(dX, dY, max.z),
+        new THREE.Vector3(0, 1, 0)
+    );
+
+    scene.add(dimensionLines);
+
+    // HTML labels — midpoint of each line
+    dimensionLabelContainer = document.createElement('div');
+    dimensionLabelContainer.id = 'dimensionLabelContainer';
+    dimensionLabelContainer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:500;';
+    document.body.appendChild(dimensionLabelContainer);
+
+    dimensionLabelData = [];
+
+    const labelDefs = [
+        { text: `W: ${W}`, worldPos: new THREE.Vector3((min.x + max.x) / 2, wY, wZ) },
+        { text: `H: ${H}`, worldPos: new THREE.Vector3(hX, (min.y + max.y) / 2, hZ) },
+        { text: `D: ${D}`, worldPos: new THREE.Vector3(dX, dY, (min.z + max.z) / 2) }
+    ];
+
+    labelDefs.forEach(({ text, worldPos }) => {
+        const el = document.createElement('div');
+        el.textContent = text;
+        el.style.cssText = `
+            position:absolute;
+            background:rgba(0,0,0,0.6);
+            color:#189AB4;
+            font-family:Poppins,sans-serif;
+            font-size:13px;
+            font-weight:600;
+            letter-spacing:0.04em;
+            padding:3px 9px;
+            border-radius:6px;
+            border:1px solid rgba(24,154,180,0.5);
+            white-space:nowrap;
+            transform:translate(-50%,-50%);
+            pointer-events:none;
+        `;
+        dimensionLabelContainer.appendChild(el);
+        dimensionLabelData.push({ worldPos, el });
+    });
+}
+
+function hideDimensions() {
+    if (dimensionLines) {
+        scene.remove(dimensionLines);
+        dimensionLines.traverse(child => { if (child.geometry) child.geometry.dispose(); });
+        dimensionLines = null;
+    }
+    if (dimensionLabelContainer) {
+        dimensionLabelContainer.remove();
+        dimensionLabelContainer = null;
+    }
+    dimensionLabelData = [];
+}
+
+function updateDimensionLabels() {
+    if (!areDimensionsVisible || dimensionLabelData.length === 0) return;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    dimensionLabelData.forEach(({ worldPos, el }) => {
+        const projected = worldPos.clone().project(camera);
+        if (projected.z > 1) {
+            el.style.display = 'none';
+        } else {
+            el.style.display = 'block';
+            el.style.left = ((projected.x * 0.5 + 0.5) * w) + 'px';
+            el.style.top = ((-projected.y * 0.5 + 0.5) * h) + 'px';
+        }
+    });
+}// ─────────────────────────────────────────────────────────────────────────────
 
 function setupHaloEffect(mesh) {
     mesh.geometry.computeBoundingBox();
@@ -963,321 +1112,409 @@ function updateHaloEffects(delta) {
 
 function loadGLTFModel() {
     const loader = new GLTFLoader();
-    loader.register(parser => new GLTFAnimationPointerExtension(parser));
-    // Hardcoded paths
-    const modelPath = './Model/Model.glb';
-    const hdriPath = './HDRI/art_studio_4k.hdr';
-    console.log('Starting GLTF load from:', modelPath);
-    console.log('Starting HDRI load from:', hdriPath);
+    const modelPath = './Model/Model.glb'//'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/GLTFViewer/main/Examples/Schist/Model/Schist.glb';
+    const hdriPath = './HDRI/photo_studio_01_4k.hdr';
 
-    // Show loading overlay
+    console.log('Loading Base Model from:', modelPath);
+
     const overlay = document.getElementById('modelLoadingOverlay');
     const progressFill = document.getElementById('modelProgressFill');
     const progressPercent = document.getElementById('modelProgressPercent');
-    if (overlay) {
-        overlay.classList.add('visible');
-    }
-    if (progressFill) progressFill.style.width = '0%';
-    if (progressPercent) progressPercent.textContent = '0%';
+    if (overlay) overlay.classList.add('visible');
 
-    loader.load(
-        modelPath,
-        function (gltf) {
-            console.log('GLTF model loaded successfully!');
-            if (overlay) overlay.classList.remove('visible');
+    loader.load(modelPath, function (gltf) {
+        console.log('Base Model loaded successfully!');
+        if (overlay) overlay.classList.remove('visible');
 
-            if (currentModel) {
-                scene.remove(currentModel);
-                if (mixer) mixer.stopAllAction();
-                actions = {};
+        if (currentModel) scene.remove(currentModel);
+        hideDimensions();
+        areDimensionsVisible = false;
+
+        currentModel = gltf.scene;
+        scene.add(currentModel);
+
+        // Save original materials
+        originalMaterials.clear();
+        currentModel.traverse((node) => {
+            if (node.isMesh && node.material) {
+                originalMaterials.set(node, node.material.clone());
             }
+        });
 
-            currentModel = gltf.scene;
-            scene.add(currentModel);
-
-            // === Save original materials and log all materials ===
-            originalMaterials.clear();
-            console.groupCollapsed('Materials found in GLB on load');
-            currentModel.traverse((node) => {
-                if (node.isMesh && node.material) {
-                    originalMaterials.set(node, node.material);
-                    console.log(
-                        `Mesh: "${node.name || '(unnamed)'}" → Material: "${node.material.name || '(no name)'}"`
-                    );
-                }
-            });
-            console.groupEnd();
-
-            // Scan for hide_ parts
-            hideableParts = [];
-            currentModel.traverse((node) => {
-                if (node.isMesh && node.name.toLowerCase().startsWith('hide_')) {
+        // Hide_ parts and halos
+        hideableParts = [];
+        currentModel.traverse((node) => {
+            if (node.isMesh) {
+                if (node.name.toLowerCase().startsWith('hide_')) {
                     hideableParts.push(node);
                     node.visible = true;
                 }
-            });
-
-            // Automatically add halos to hotspots
-            currentModel.traverse((node) => {
-                if (node.isMesh) {
-                    const nameLower = (node.name || '').toLowerCase();
-                    if (nameLower.includes('hs_txt') ||
-                        nameLower.includes('hs_img') ||
-                        nameLower.includes('hs_vid')) {
-                        setupHaloEffect(node);
-                        if (haloGroups.has(node)) {
-                            haloGroups.get(node).visible = true;
-                        }
-                    }
+                if (node.name.toLowerCase().includes('hs_')) {
+                    setupHaloEffect(node);
                 }
-            });
-            activeAction = null;
-            mixer = null;
-            actions = {};
-            console.log('Forced full reset before new load');
-            // Animation mixer setup
-            mixer = new THREE.AnimationMixer(currentModel);
-
-            const dropdown = document.getElementById('animationOptionsDropdown');
-            if (dropdown) dropdown.innerHTML = '';
-
-            const noAnimOption = document.createElement('div');
-            noAnimOption.className = 'option';
-            noAnimOption.textContent = 'No Animation';
-            noAnimOption.style.fontWeight = 'bold';
-            noAnimOption.onclick = () => selectAnimation(null);
-            dropdown.appendChild(noAnimOption);
-
-            const separator = document.createElement('div');
-            separator.style.height = '1px';
-            separator.style.background = 'rgba(255,255,255,0.2)';
-            separator.style.margin = '8px 0';
-            dropdown.appendChild(separator);
-
-            gltf.animations.forEach((clip) => {
-                const name = clip.name || 'clip' + Object.keys(actions).length;
-                actions[name] = mixer.clipAction(clip);
-                const option = document.createElement('div');
-                option.className = 'option';
-                option.textContent = name;
-                option.addEventListener('click', () => selectAnimation(name));
-                dropdown.appendChild(option);
-            });
-
-            activeAction = null;
-            const trigger = document.getElementById('animationSelectTrigger');
-            if (trigger) trigger.textContent = gltf.animations.length > 0 ? 'Select' : 'No Animation';
-
-            const timeline = document.getElementById('animationTimeline');
-            if (timeline) {
-                timeline.max = 0;
-                timeline.value = 0;
-                timeline.disabled = true;
             }
+        });
 
-            if (currentModel) {
-                currentModel.visible = true;
-                hideableParts.forEach(part => part.visible = true);
-            }
+        mixer = new THREE.AnimationMixer(scene);
 
-            setupAnnotations(currentModel);
+        // Populate dropdown
+        const dropdown = document.getElementById('animationOptionsDropdown');
+        if (dropdown) dropdown.innerHTML = '';
 
-            const box = new THREE.Box3().setFromObject(currentModel);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            camera.position.set(center.x + maxDim, center.y + maxDim, center.z + maxDim);
-            controls.target.copy(center);
-            controls.update();
-        },
-        function (progress) {
-            if (progress.total > 0) {
-                const percent = Math.round((progress.loaded / progress.total) * 100);
-                console.log('GLTF progress:', percent + '%');
-                if (progressFill) progressFill.style.width = percent + '%';
-                if (progressPercent) progressPercent.textContent = percent + '%';
-            }
-        },
-        function (error) {
-            console.error('GLTF load failed:', error);
-            if (overlay) overlay.classList.remove('visible');
+        const noAnimOption = document.createElement('div');
+        noAnimOption.className = 'option';
+        noAnimOption.textContent = 'No Animation';
+        noAnimOption.onclick = () => selectAnimation(null);
+        dropdown.appendChild(noAnimOption);
+
+        // Add your animation options here (you can hardcode or load from a list)
+        const animationsList = ['Normal Water', 'Production', 'Hot Water Sanitization', 'Sanitization']; // ← Add your track names
+        animationsList.forEach(name => {
+            const option = document.createElement('div');
+            option.className = 'option';
+            option.textContent = name;
+            option.addEventListener('click', () => selectAnimation(name));
+            dropdown.appendChild(option);
+        });
+
+        setupAnnotations(currentModel);
+        setupViewpoints();
+
+        // Camera fit
+        const box = new THREE.Box3().setFromObject(currentModel);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        camera.position.set(center.x + maxDim, center.y + maxDim, center.z + maxDim);
+        controls.target.copy(center);
+        controls.update();
+
+    }, function (progress) {
+        if (progress.total > 0) {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            if (progressFill) progressFill.style.width = percent + '%';
+            if (progressPercent) progressPercent.textContent = percent + '%';
         }
-    );
+    }, function (error) {
+        console.error('GLTF load failed:', error);
+        if (overlay) overlay.classList.remove('visible');
+    });
 
-    // HDRI loading (unchanged)
-    const hdriLoader = new RGBELoader();
-    hdriLoader.load(
-        hdriPath,
-        function (texture) {
-            console.log('HDRI loaded successfully!');
-            texture.mapping = THREE.EquirectangularReflectionMapping;
-            const pmremGenerator = new THREE.PMREMGenerator(renderer);
-            pmremGenerator.compileEquirectangularShader();
-            const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-            scene.environment = envMap;
-            scene.background = new THREE.CanvasTexture(gradientCanvas);
-            pmremGenerator.dispose();
-            texture.dispose();
-        },
-        function (progress) {
-            console.log('HDRI progress:', Math.round((progress.loaded / progress.total) * 100) + '%');
-        },
-        function (error) {
-            console.error('HDRI load failed:', error);
-        }
-    );
+    // HDRI — load separately, independent of model
+ new RGBELoader().load(hdriPath, function (texture) {
+     texture.mapping = THREE.EquirectangularReflectionMapping;
+     const pmremGenerator = new THREE.PMREMGenerator(renderer);
+     pmremGenerator.compileEquirectangularShader();
+     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+     scene.environment = envMap;
+     scene.background = new THREE.CanvasTexture(gradientCanvas);
+     pmremGenerator.dispose();
+     texture.dispose();
+ }, undefined, function (error) {
+     console.error('HDRI load failed:', error);
+ });
 }
+
 function selectAnimation(name) {
-    // 1. Stop & reset current animation (original logic)
+    // Stop any previous action
     if (activeAction) {
         activeAction.stop();
-        activeAction.reset();
-        activeAction.paused = true;
         activeAction = null;
     }
 
-    // 2. Reset timeline & UI
-    const timeline = document.getElementById('animationTimeline');
+    // Reset animation state flags
+    is360Rotating = false;
+    rotation360Paused = false;
+    rotation360Angle = 0;
+
+    // Hide any helper animation scene
+    if (window._lastAnimScene) {
+        window._lastAnimScene.visible = false;
+    }
+
+    // Update UI
+    const trigger = document.getElementById("animationSelectTrigger");
+    if (trigger) trigger.textContent = name || "No Animation";
+
+    const timeline = document.getElementById("animationTimeline");
     if (timeline) {
         timeline.value = 0;
         timeline.disabled = true;
     }
 
-    const trigger = document.getElementById('animationSelectTrigger');
-    if (trigger) {
-        trigger.textContent = name || 'No Animation';
-    }
+    // ────────────────────────────────
+    //  CASE 1: NO ANIMATION SELECTED
+    // ────────────────────────────────
+    if (!name) {
+        console.log("No animation selected: showing base model");
 
-    // 3. Handle "No Animation"
-    if (name === null) {
+        // Hide Clamp scene if visible
+        if (window._clampScene) window._clampScene.visible = false;
+
+        // Show base model again
+        if (currentModel) currentModel.visible = true;
+
+        mixer = null;
+        activeAction = null;
+        // 🔹 Show back all meshes whose names start with "hide_"
         if (currentModel) {
-            currentModel.traverse((node) => {
-                if (node.isMesh && originalMaterials.has(node)) {
-                    node.material = originalMaterials.get(node);
-                    node.material.needsUpdate = true;
+            currentModel.traverse(node => {
+                if (node.isMesh && node.name.startsWith("hide_")) {
+                    node.visible = true;
                 }
             });
         }
-        hideableParts.forEach(part => part.visible = true);
-        document.querySelectorAll('#animationOptionsDropdown .option').forEach(opt => {
-            opt.classList.remove('selected');
-        });
-        const dropdown = document.getElementById('animationOptionsDropdown');
-        if (dropdown) dropdown.style.display = 'none';
+
+
         return;
     }
 
-    // 4. Select and prepare new action
-    const action = actions[name];
-    if (action) {
-        activeAction = action;
-
+    // ────────────────────────────────
+    //  CASE 2: 360° ROTATION
+    // ────────────────────────────────
+    if (name === "360°") {
         if (timeline) {
-            const duration = activeAction.getClip().duration;
-            console.log(`[ANIM] clip="${name}" duration=${duration}s tracks=${activeAction.getClip().tracks.length}`);
-            activeAction.getClip().tracks.forEach((t, i) =>
-                console.log(`  track[${i}] name="${t.name}" keys=${t.times?.length} lastKey=${t.times?.[t.times.length-1]}`)
-            );
-            timeline.max = duration;
+            timeline.max = 360;
+            timeline.step = 1;
+            timeline.value = 0;
+            timeline.disabled = false;
+        }
+        is360Rotating = true;
+        rotation360Angle = 0;
+        return;
+    }
+
+    // Shared loader (register pointer extension only once globally)
+    if (!window._sharedLoader) {
+        window._sharedLoader = new GLTFLoader();
+        window._sharedLoader.register(p => new GLTFAnimationPointerExtension(p));
+    }
+    const loader = window._sharedLoader;
+
+    // ────────────────────────────────
+    //  CASE 3: CLAMP ANIMATION
+    // ────────────────────────────────
+    if (name === "Clamp Animation") {
+        console.log("Playing Clamp Animation...");
+
+        // Hide base model (keep its data)
+        if (currentModel) currentModel.visible = false;
+
+        // If already loaded once, reuse instantly
+        if (window._clampScene) {
+            window._clampScene.visible = true;
+            playClampAnimation(window._clampScene, window._clampClip);
+            return;
+        }
+
+        const clampOverlay = document.getElementById('modelLoadingOverlay');
+        const clampProgressFill = document.getElementById('modelProgressFill');
+        const clampProgressPercent = document.getElementById('modelProgressPercent');
+        const clampLabel = document.getElementById('modelLoadingLabel');
+        if (clampOverlay) clampOverlay.classList.add('visible');
+        if (clampLabel) clampLabel.textContent = 'Loading Animation...';
+        if (clampProgressFill) clampProgressFill.style.width = '0%';
+        if (clampProgressPercent) clampProgressPercent.textContent = '0%';
+
+        loader.load(`${ASSETS_BASE}/animations/${name}.glb`, gltf => {
+            if (clampOverlay) clampOverlay.classList.remove('visible');
+            if (clampLabel) clampLabel.textContent = 'Loading Model...';
+
+            const clampScene = gltf.scene;
+            clampScene.visible = true;
+            window._clampScene = clampScene;
+            window._clampClip = gltf.animations[0];
+            scene.add(clampScene);
+
+            playClampAnimation(clampScene, gltf.animations[0]);
+        }, function (progress) {
+            if (progress.total > 0) {
+                const percent = Math.round((progress.loaded / progress.total) * 100);
+                if (clampProgressFill) clampProgressFill.style.width = percent + '%';
+                if (clampProgressPercent) clampProgressPercent.textContent = percent + '%';
+            }
+        }, function (error) {
+            console.error('Clamp animation load failed:', error);
+            if (clampOverlay) clampOverlay.classList.remove('visible');
+            if (clampLabel) clampLabel.textContent = 'Loading Model...';
+        });
+
+        return;
+    }
+
+    // ────────────────────────────────
+    //  CASE 4: POINTER-BASED ANIMATIONS
+    // ────────────────────────────────
+    console.log(`Playing base-model animation: ${name}`);
+
+    // Hide Clamp scene, show base model
+    if (window._clampScene) window._clampScene.visible = false;
+    if (currentModel) currentModel.visible = true;
+
+    const animOverlay = document.getElementById('modelLoadingOverlay');
+    const animProgressFill = document.getElementById('modelProgressFill');
+    const animProgressPercent = document.getElementById('modelProgressPercent');
+    const animLabel = document.getElementById('modelLoadingLabel');
+    if (animOverlay) animOverlay.classList.add('visible');
+    if (animLabel) animLabel.textContent = 'Loading Animation...';
+    if (animProgressFill) animProgressFill.style.width = '0%';
+    if (animProgressPercent) animProgressPercent.textContent = '0%';
+
+    loader.load(`${ASSETS_BASE}/animations/${name}.glb`, gltf => {
+        if (animOverlay) animOverlay.classList.remove('visible');
+        if (animLabel) animLabel.textContent = 'Loading Model...';
+
+        const clip = gltf.animations[0];
+        if (!clip) {
+            console.warn("No animation found in", name);
+            return;
+        }
+
+        // Hide any geometry inside this animation .glb
+        gltf.scene.traverse(node => {
+            if (node.isMesh) node.visible = false;
+        });
+
+        scene.add(gltf.scene);
+        window._lastAnimScene = gltf.scene;
+
+        // Mixer on scene for pointer binding
+        if (mixer) {
+            mixer.stopAllAction();
+            mixer.uncacheRoot(scene);
+        }
+        mixer = new THREE.AnimationMixer(scene);
+
+        activeAction = mixer.clipAction(clip);
+        activeAction.setLoop(THREE.LoopOnce, 1);
+        activeAction.clampWhenFinished = true;
+        activeAction.reset();
+        activeAction.timeScale = 1;
+        activeAction.play();
+        // 🔹 Hide all meshes whose names start with "hide_"
+        if (currentModel) {
+            currentModel.traverse(node => {
+                if (node.isMesh && node.name.startsWith("hide_")) {
+                    node.visible = false;
+                }
+            });
+        }
+
+        // Update timeline slider
+        if (timeline) {
+            timeline.max = clip.duration;
             timeline.step = 0.001;
             timeline.value = 0;
             timeline.disabled = false;
         }
+    }, function (progress) {
+        if (progress.total > 0) {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            if (animProgressFill) animProgressFill.style.width = percent + '%';
+            if (animProgressPercent) animProgressPercent.textContent = percent + '%';
+        }
+    }, function (error) {
+        console.error('Animation load failed:', error);
+        if (animOverlay) animOverlay.classList.remove('visible');
+        if (animLabel) animLabel.textContent = 'Loading Model...';
+    });
 
-        document.querySelectorAll('#animationOptionsDropdown .option').forEach(opt => {
-            if (opt.textContent === name) {
-                opt.classList.add('selected');
-            } else {
-                opt.classList.remove('selected');
-            }
-        });
-
-        const dropdown = document.getElementById('animationOptionsDropdown');
-        if (dropdown) dropdown.style.display = 'none';
-
-        // 5. Material swap (original materials + whole parent)
-        const animIndex = Object.keys(actions).indexOf(name) + 1;
-        const prefix = `anim${animIndex}_`;
-
-        if (currentModel) {
-            let targetMaterial = null;
-            originalMaterials.forEach((origMat, node) => {
-                if (origMat && origMat.name?.startsWith(prefix)) {
-                    targetMaterial = origMat;
-                    console.log(`Using original material for ${prefix}: ${origMat.name}`);
-                    return;
-                }
-            });
-
-            if (targetMaterial) {
-                let swapsMade = 0;
-                currentModel.traverse((node) => {
-                    if (node.isMesh && originalMaterials.has(node)) {
-                        node.material = originalMaterials.get(node);
-                        node.material.needsUpdate = true;
-                    }
-                });
-
-                const swappedParents = new Set();
-                originalMaterials.forEach((origMat, node) => {
-                    if (origMat && origMat.name?.startsWith(prefix)) {
-                        let parentMesh = node;
-                        while (parentMesh && parentMesh.parent && parentMesh.parent !== currentModel) {
-                            parentMesh = parentMesh.parent;
-                        }
-                        if (parentMesh && !swappedParents.has(parentMesh)) {
-                            parentMesh.traverse((child) => {
-                                if (child.isMesh && originalMaterials.has(child)) {
-                                    child.material = targetMaterial;
-                                    child.material.needsUpdate = true;
-                                    swapsMade++;
-                                }
-                            });
-                            swappedParents.add(parentMesh);
-                            console.log(`Swapped entire parent "${parentMesh.name || '(unnamed)'}" for "${name}"`);
-                        }
-                    }
-                });
-
-                if (swapsMade > 0) {
-                    console.log(`Targeted full-pipe swap complete: ${swapsMade} meshes for "${name}"`);
-                } else {
-                    console.log(`No original anim prefix found for "${name}"`);
-                }
-            } else {
-                console.log(`No ORIGINAL material starting with ${prefix} found for "${name}"`);
-            }
+    // ────────────────────────────────
+    //  INTERNAL HELPER: Clamp Playback
+    // ────────────────────────────────
+    function playClampAnimation(sceneObj, clip) {
+        if (!clip) {
+            console.warn("Clamp animation clip missing");
+            return;
+        }
+        if (mixer) {
+            mixer.stopAllAction();
+            mixer.uncacheRoot(scene);
         }
 
-        // 6. Play
+        mixer = new THREE.AnimationMixer(sceneObj);
+        activeAction = mixer.clipAction(clip);
         activeAction.setLoop(THREE.LoopOnce, 1);
         activeAction.clampWhenFinished = true;
         activeAction.reset();
+        activeAction.timeScale = 1;
         activeAction.paused = false;
         activeAction.play();
+        // Hide "Hide_" prefixed parts while animation runs
+        // 🔹 Hide all meshes whose names start with "hide_"
+        if (currentModel) {
+            currentModel.traverse(node => {
+                if (node.isMesh && node.name.startsWith("hide_")) {
+                    node.visible = false;
+                }
+            });
+        }
 
-        hideableParts.forEach(part => {
-            part.visible = false;
-        });
+
+
+        // Refocus camera
+        const box = new THREE.Box3().setFromObject(sceneObj);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        camera.position.set(center.x + maxDim, center.y + maxDim, center.z + maxDim);
+        controls.target.copy(center);
+        controls.update();
+
+        if (timeline) {
+            timeline.max = clip.duration;
+            timeline.step = 0.001;
+            timeline.disabled = false;
+        }
     }
 }
+
 function playAnimation() {
+    if (is360Rotating || rotation360Paused) {
+        rotation360Paused = false;
+        is360Rotating = true;
+        return;
+    }
     if (activeAction) {
         activeAction.paused = false;
         if (activeAction.timeScale < 0) activeAction.timeScale = 1;
         activeAction.play();
+        // 🔹 Hide all meshes whose names start with "hide_"
+        if (currentModel) {
+            currentModel.traverse(node => {
+                if (node.isMesh && node.name.startsWith("hide_")) {
+                    node.visible = false;
+                }
+            });
+        }
+
+
     }
 }
 
 function pauseAnimation() {
+    if (is360Rotating) {
+        rotation360Paused = true;
+        is360Rotating = false;
+        return;
+    }
     if (activeAction) activeAction.paused = true;
 }
 
 function reverseAnimation() {
+    if (is360Rotating || rotation360Paused) {
+        // Reverse not meaningful for rotation, just restart
+        rotation360Angle = 0;
+        rotation360Paused = false;
+        is360Rotating = true;
+        if (currentModel) currentModel.rotation.y = 0;
+        return;
+    }
     if (activeAction) {
         activeAction.paused = false;
         activeAction.timeScale = -Math.abs(activeAction.timeScale);
         activeAction.play();
+
     }
 }
 
@@ -1443,13 +1680,23 @@ function handleHotspot(x, y) {
                         </video>
                     `;
                 } else {
-                    if (targetObject.name === "hs_vid_1") {
-                        targetObject.userData.videoURL = "https://www.youtube.com/embed/svhHjElTOz4?si=cVyCj-mqvm6icWpZ";
-                    } else if (targetObject.name === "hs_vid_2") {
-                        targetObject.userData.videoURL = "https://www.youtube.com/embed/rvPq6wycqAw?si=LIjE9AvDE9zmRUcu";
-                    } else if (targetObject.name === "hs_vid_3") {
-                        targetObject.userData.videoURL = "https://www.youtube.com/embed/p6vWuOMPIcs?si=01gWUEW0Qsotzm2F";
-                    } else {
+                    if (targetObject.name === "hs_vid_1") { //centrifuging
+                        targetObject.userData.videoURL = "https://www.youtube.com/embed/p6vWuOMPIcs?si=LmrpzmdW5ohyeKV4";
+                    } else if (targetObject.name === "hs_vid_2") { //Introduction
+                        targetObject.userData.videoURL = "https://www.youtube.com/embed/vq_doTSCLA4?si=E-euCr8mEWmOusCR";
+                    } else if (targetObject.name === "hs_vid_3") { //Delumping
+                        targetObject.userData.videoURL = "https://www.youtube.com/embed/ggmTKNBNmyw?si=8lCUdG0wfyMI9Fph";
+                    }
+                    else if (targetObject.name === "hs_vid_4") { //Milling
+                        targetObject.userData.videoURL = "https://www.youtube.com/embed/6-DThBmtGg8?si=kXv9D9g7DcF3galS";
+                    }
+                    else if (targetObject.name === "hs_vid_5") { //Jacket Heating
+                        targetObject.userData.videoURL = "https://www.youtube.com/embed/ysIRflSSTH8?si=qkn9YfN2wHDXqRmV";
+                    }
+                    else if (targetObject.name === "hs_vid_6") { //CIP
+                        targetObject.userData.videoURL = "https://www.youtube.com/embed/qt9rvHTGRIY?si=B3wSZUXO4MBouPn_";
+                    }
+                     else {
                         targetObject.userData.videoURL = "https://player.vimeo.com/video/76979871";
                     }
                     videoContainer.innerHTML = `<iframe width="245" height="138"
@@ -1534,6 +1781,7 @@ function handleHighlight(x, y) {
     }
 }
 
+/* setOrthographicView and resetPerspectiveView COMMENTED OUT — uncomment to restore
 function setOrthographicView(position, up) {
     if (!currentModel) return;
     if (isFlyMode) {
@@ -1592,11 +1840,165 @@ function resetPerspectiveView() {
     controls.update();
     flyControls.update(0);
 }
+*/
+
+// ─── Viewpoints ───────────────────────────────────────────────────────────────
+// Scans the model for meshes named "viewpoint{N}_{label}" and builds
+// a button per group. Clicking a button hides that group and shows all others.
+// Naming convention: viewpoint1_Overview, viewpoint2_Internals, etc.
+// Multiple meshes can share the same prefix — they all hide/show together.
+
+let viewpointGroups = new Map();
+let activeViewpoint = null;
+
+// ─── Viewpoints ───────────────────────────────────────────────────────────────
+// Each viewpoint is a separate GLB in the viewpoints/ folder.
+// The GLB contains only the meshes that should be VISIBLE for that viewpoint.
+// On click: hide base model, load viewpoint GLB, show it.
+// On Show All: remove viewpoint GLB, restore base model.
+
+let viewpointModel = null; // currently loaded viewpoint GLB
+const viewpointsList = ['Bowl Only', 'Dryer Bowl', 'Centrifuge Bowl', 'Assembly without Bowl']; // ← add your viewpoint names here
+
+function setupViewpoints() {
+    const list = document.getElementById('viewpointList');
+    if (!list) return;
+    list.innerHTML = '';
+
+    const showAllBtn = document.createElement('button');
+    showAllBtn.className = 'viewpoint-btn';
+    showAllBtn.textContent = 'Show All';
+    showAllBtn.classList.add('active');
+    showAllBtn.onclick = () => {
+        // Remove viewpoint GLB
+        if (viewpointModel) {
+            scene.remove(viewpointModel);
+            viewpointModel = null;
+        }
+        // Restore base model
+        if (currentModel) currentModel.visible = true;
+
+        list.querySelectorAll('.viewpoint-btn').forEach(b => b.classList.remove('active'));
+        showAllBtn.classList.add('active');
+    };
+    list.appendChild(showAllBtn);
+
+    viewpointsList.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'viewpoint-btn';
+        btn.textContent = name;
+        btn.onclick = () => selectViewpoint(name, btn, list);
+        list.appendChild(btn);
+    });
+
+    const panel = document.getElementById('viewpointPanel');
+    if (panel) panel.style.display = viewpointsList.length > 0 ? 'flex' : 'none';
+}
+
+function selectViewpoint(name, btn, list) {
+    // Remove previous viewpoint GLB if any
+    if (viewpointModel) {
+        scene.remove(viewpointModel);
+        viewpointModel = null;
+    }
+
+    // Hide base model
+    if (currentModel) currentModel.visible = false;
+
+    // Update active button immediately
+    list.querySelectorAll('.viewpoint-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Show loading overlay
+    const overlay = document.getElementById('modelLoadingOverlay');
+    const progressFill = document.getElementById('modelProgressFill');
+    const progressPercent = document.getElementById('modelProgressPercent');
+    if (overlay) overlay.classList.add('visible');
+    if (progressFill) progressFill.style.width = '0%';
+    if (progressPercent) progressPercent.textContent = '0%';
+
+    // Load viewpoint GLB
+    const loader = new GLTFLoader();
+    loader.load(`${ASSETS_BASE}/viewpoints/${name}.glb`, function (gltf) {
+        viewpointModel = gltf.scene;
+        scene.add(viewpointModel);
+
+        // Hide overlay on success
+        if (overlay) overlay.classList.remove('visible');
+
+    }, function (progress) {
+        if (progress.total > 0) {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            if (progressFill) progressFill.style.width = percent + '%';
+            if (progressPercent) progressPercent.textContent = percent + '%';
+        }
+    }, function (error) {
+        console.error(`Failed to load viewpoint: ${name}`, error);
+        // Restore base model and hide overlay on failure
+        if (currentModel) currentModel.visible = true;
+        if (overlay) overlay.classList.remove('visible');
+    });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TARGET_FPS = 1000;
+const FRAME_INTERVAL = 1000 / TARGET_FPS;
+let lastFrameTime = 0;
+let fpsFrameCount = 0;
+let fpsLastTime = performance.now();
+let lastDrawCallTime = 0;
 
 function animate() {
     requestAnimationFrame(animate);
-    const delta = clock.getDelta();
 
+    // FPS cap — check first before doing any work
+    const now = performance.now();
+    if (now - lastFrameTime < FRAME_INTERVAL) return;
+    lastFrameTime = now;
+
+    const delta = clock.getDelta(); // ← moved here, after the cap
+
+    // FPS counter
+    fpsFrameCount++;
+    if (now - fpsLastTime >= 500) {
+        const fps = Math.round((fpsFrameCount * 1000) / (now - fpsLastTime));
+        const fpsEl = document.getElementById('fpsValue');
+        if (fpsEl) {
+            fpsEl.textContent = `${fps} FPS`;
+            fpsEl.style.color = fps >= 50 ? '#4ade80' : fps >= 30 ? '#facc15' : '#f87171';
+        }
+        fpsFrameCount = 0;
+        fpsLastTime = now;
+    }
+    // 360° rotation
+    if (is360Rotating && !rotation360Paused) {
+        if (currentModel) {
+            currentModel.rotation.y += (Math.PI / 180); // 1° per frame
+            rotation360Angle = (rotation360Angle + 1) % 360;
+            const timeline = document.getElementById('animationTimeline');
+            if (timeline) timeline.value = rotation360Angle;
+            if (rotation360Angle === 0) {
+                // Completed one full rotation — stop
+                is360Rotating = false;
+                rotation360Paused = true;
+            }
+        }
+    }
+    // Draw calls counter
+    if (now - lastDrawCallTime >= 500) {
+        const drawCalls = renderer.info.render.calls;
+        const triangles = renderer.info.render.triangles;
+        const dcEl = document.getElementById('drawCallValue');
+        const triEl = document.getElementById('triangleValue');
+        if (dcEl) {
+            dcEl.textContent = `${drawCalls} DC`;
+            dcEl.style.color = drawCalls <= 100 ? '#4ade80' : drawCalls <= 300 ? '#facc15' : '#f87171';
+        }
+        if (triEl) triEl.textContent = `${(triangles / 1000).toFixed(0)}K TRI`;
+        lastDrawCallTime = now;
+    }
+
+    // Animation mixer
     if (mixer && activeAction) {
         mixer.update(delta);
         if (!activeAction.paused) {
@@ -1611,6 +2013,7 @@ function animate() {
     }
 
     updateHaloEffects(delta);
+    updateDimensionLabels();
     if (flyControls.enabled) {
         flyControls.update(delta);
         clampCameraPitch();
