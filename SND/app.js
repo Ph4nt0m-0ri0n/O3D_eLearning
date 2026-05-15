@@ -965,7 +965,7 @@ function loadGLTFModel() {
     const loader = new GLTFLoader();
     loader.register(parser => new GLTFAnimationPointerExtension(parser));
     // Hardcoded paths
-    const modelPath = './Model/Model.glb';
+    const modelPath = 'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/O3D_eLearning/main/SND/Model/Model.glb';
     const hdriPath = './HDRI/art_studio_4k.hdr';
     console.log('Starting GLTF load from:', modelPath);
     console.log('Starting HDRI load from:', hdriPath);
